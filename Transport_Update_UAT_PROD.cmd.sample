@@ -1,0 +1,114 @@
+@echo off
+
+::--------------------------------------------------------
+:: Demo file - Copy a .xlsm file to user-acceptance and to
+:: production. Update first the file to remove a local
+:: addin (.xlam) and replace it by the uat/prod file
+::--------------------------------------------------------
+
+cls
+setlocal
+
+echo ---------------------------------------------------------------
+echo - Copy App.xlsm to the UAT and production folders -
+echo ---------------------------------------------------------------
+echo.
+
+set COPY_UAT=N
+set /P COPY_UAT=Copy to UAT (Y/[N])?
+if /I "%COPY_UAT%" EQU "Y" CALL :fnCopyUAT
+
+set COPY_PROD=N
+set /P COPY_PROD=Copy to PROD (Y/[N])?
+if /I "%COPY_PROD%" EQU "Y" CALL :fnCopyPROD
+
+GOTO END:
+
+:fnCopyUAT
+echo.
+echo Copying to the user-acceptance folder
+echo -------------------------------------
+echo.
+CALL :fnCopy UAT I:\Training_Folder\
+
+GOTO:EOF
+
+:fnCopyPROD
+echo.
+echo Copying to the production folder
+echo --------------------------------
+echo.
+CALL :fnCopy PROD I:\Production_Folder\
+
+GOTO:EOF
+
+::--------------------------------------------------------
+::-- getBaseName - Get basename of a file/folder
+::-- Return test f.i. from C:\root\folder\test.xlsm
+::--------------------------------------------------------
+:getBaseName
+SET getBaseName=%~n1
+
+GOTO:EOF
+
+::--------------------------------------------------------
+::-- fnCopy -
+::   Ask two parameters,
+::      %1 = the prefix (UAT/PROD) and
+::      %2 = the path to the target folder
+::--------------------------------------------------------
+:fnCopy
+
+REM %1 is the prefix (UAT or PROD)
+set PREFIX=%1
+
+REM %2 is the target folder; where to copy files
+set DESTINATION=%2
+
+REM 1. Copy MyAddIn.xlam to f.i. UAT_MyAddIn.xlam (add a "UAT_" prefix)
+set file="C:\Christophe\Repository\MyAddIn.xlam"
+set target="%DESTINATION%%PREFIX%_MyAddIn.xlam"
+
+echo   Copy MyAddIn.xlam to folder %target:"=%
+echo.
+cscript Transport.vbs -s=%file% -t=%target% /force /readonly /hidden /silent //nologo
+
+if %ERRORLEVEL% neq 0 (
+   goto ERROR:
+)
+
+REM 2. Copy App.xlsm and replace MyAddIn and use UAT_MyAddIn.xlam instead
+set file="C:\Christophe\Repository\App.xlsm"
+set target="%DESTINATION%%PREFIX%_App.xlsm"
+set oldAddIn="C:\Christophe\Repository\MyAddIn.xlam"
+set newAddIn="%DESTINATION%%PREFIX%_MyAddIn.xlam"
+
+echo   Copy App.xlsm to folder %target:"=%
+CALL :getBaseName %oldAddIn%
+echo       Replace reference to %getBaseName:"=% by %newAddIn:"=%
+echo.
+cscript Transport.vbs -s=%file% -t=%target% -o=%oldAddIn% -n=%newAddIn% /force /readonly /hidden /silent /open //nologo
+
+if %ERRORLEVEL% neq 0 (
+   goto ERROR:
+)
+
+GOTO:EOF
+
+::--------------------------------------------------------
+::-- Error - An error has been encountered
+::--------------------------------------------------------
+:ERROR
+echo.
+echo =======================================================
+echo = Error %ERRORLEVEL% has been raised by the script; stop here.
+echo =======================================================
+echo.
+
+GOTO END:
+
+::--------------------------------------------------------
+::-- This is the end
+::--------------------------------------------------------
+:END
+endlocal

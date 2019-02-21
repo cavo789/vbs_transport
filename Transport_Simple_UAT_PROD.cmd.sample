@@ -1,0 +1,84 @@
+@echo off
+
+::--------------------------------------------------------
+:: Demo file - Copy a .xlam file to user-acceptance and to
+:: production. No changes required; just a "filecopy"
+::--------------------------------------------------------
+
+cls
+setlocal
+
+echo ----------------------------------------------------------
+echo - Copy MyAddIn.xlam to the UAT and production folders -
+echo ----------------------------------------------------------
+echo.
+
+set COPY_UAT=N
+set /P COPY_UAT=Copy to UAT (Y/[N])?
+if /I "%COPY_UAT%" EQU "Y" CALL :fnCopyUAT
+
+set COPY_PROD=N
+set /P COPY_PROD=Copy to PROD (Y/[N])?
+if /I "%COPY_PROD%" EQU "Y" CALL :fnCopyPROD
+
+GOTO END:
+
+:fnCopyUAT
+echo.
+echo Copying to the user-acceptance folder
+echo -------------------------------------
+echo.
+CALL :fnCopy UAT I:\Training_Folder\
+
+GOTO:EOF
+
+:fnCopyPROD
+echo.
+echo Copying to the production folder
+echo --------------------------------
+echo.
+CALL :fnCopy PROD I:\Production_Folder\
+
+GOTO:EOF
+
+::--------------------------------------------------------
+::-- fnCopy -
+::   Ask one parameter,
+::      %1 = the path to the target folder
+::--------------------------------------------------------
+:fnCopy
+
+REM %1 is the target folder; where to copy files
+set DESTINATION=%1
+
+set file="C:\Christophe\Repository\MyAddIn\MyAddIn.xlam"
+set target="%DESTINATION%MyAddIn.xlam"
+
+echo Copy MyAddIn.xlam to %target:"=%
+echo.
+
+cscript Transport.vbs -s=%file% -t=%target% /readonly /force /hidden /silent //nologo
+
+if %ERRORLEVEL% neq 0 (
+   goto ERROR:
+)
+
+GOTO:EOF
+
+::--------------------------------------------------------
+::-- Error - An error has been encountered
+::--------------------------------------------------------
+:ERROR
+echo.
+echo =======================================================
+echo = Error %ERRORLEVEL% has been raised by the script; stop here.
+echo =======================================================
+echo.
+
+GOTO END:
+
+::--------------------------------------------------------
+::-- This is the end
+::--------------------------------------------------------
+:END
+endlocal
